@@ -1,0 +1,46 @@
+$kind: http-example
+name: Full drug record.
+request:
+  url: "{{baseUrl}}/api/thuoc/:id"
+  method: GET
+  headers:
+    Accept: application/json
+  pathVariables:
+    - key: id
+      value: "1"
+      disabled: false
+      description: "(Required) "
+  body:
+    type: text
+    content: ""
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "bhytTyLe": 6049,
+        "chiDinh": "string",
+        "chongChiDinh": "string",
+        "code": "string",
+        "congTy": "string",
+        "dangBaoChe": "string",
+        "dieuKienBhyt": "string",
+        "donGia": 4463.161050807685,
+        "donViTinh": "string",
+        "hamLuong": "string",
+        "hangSanXuat": "string",
+        "hoatChat": "string",
+        "hoiChuan": "string",
+        "id": 6710,
+        "kiemSoatDacBiet": "string",
+        "lieuDung": "string",
+        "nuocSanXuat": "string",
+        "quyCach": "string",
+        "soGiayPhep": "string",
+        "tenThuoc": "string"
+      }
+order: 1000

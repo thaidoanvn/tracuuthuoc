@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{baseUrl}}/api/thuoc/search"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyword": "   ",
+      "tenThuoc": true,
+      "batDauVoi": true,
+      "hoatChat": true,
+      "cssx": true
+    }
+order: 3000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("blank keyword returns no rows", function () {
+        pm.expect(pm.response.json().result).to.eql([]);
+      });

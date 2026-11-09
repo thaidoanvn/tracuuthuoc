@@ -1,0 +1,4 @@
+workflows:
+  syncSpecToCollection:
+    - spec: ../postman/specs/tracuuthuoc.yaml
+      collection: ../postman/collections/Tra cuu thuoc

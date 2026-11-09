@@ -1,0 +1,17 @@
+$kind: collection
+description: |
+  Read-only drug catalog for the thaidoan Tra cứu thuốc app.
+  Prices and BHYT rules come from the hospital catalog and can change.
+variables:
+  baseUrl: http://localhost:8088
+  apiKey: thaidoan-tracuuthuoc-local
+  thuocId: "1"
+auth:
+  type: apikey
+  credentials:
+    - key: key
+      value: X-Api-Key
+    - key: value
+      value: '{{apiKey}}'
+    - key: in
+      value: header

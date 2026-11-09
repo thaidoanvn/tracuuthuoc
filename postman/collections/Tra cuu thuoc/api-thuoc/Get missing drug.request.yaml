@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{baseUrl}}/api/thuoc/:id"
+method: GET
+headers:
+  Accept: application/json
+pathVariables:
+  - key: id
+    value: "999999"
+order: 5000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 404", function () {
+        pm.response.to.have.status(404);
+      });
+
+      pm.test("unknown id has a message", function () {
+        pm.expect(pm.response.json().message).to.eql("Không tìm thấy thuốc");
+      });

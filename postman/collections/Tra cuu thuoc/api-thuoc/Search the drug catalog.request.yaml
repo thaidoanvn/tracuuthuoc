@@ -1,0 +1,47 @@
+$kind: http-request
+description: |
+  Selected filters are combined with OR.
+  batDauVoi matches a name that starts with the keyword.
+  tenThuoc, hoatChat, and cssx match when the keyword appears anywhere in that field.
+  cssx searches the manufacturer (hangSanXuat).
+  A blank or whitespace keyword returns an empty result.
+  When every filter is false, the result is empty.
+url: "{{baseUrl}}/api/thuoc/search"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyword": "para",
+      "tenThuoc": true,
+      "batDauVoi": false,
+      "hoatChat": false,
+      "cssx": false
+    }
+settings: {}
+examples: ./.resources/Search the drug catalog.resources/examples
+order: 1000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("name search returns summaries only", function () {
+        const body = pm.response.json();
+        pm.expect(body.result).to.be.an("array").that.is.not.empty;
+        body.result.forEach(function (row) {
+          pm.expect(row).to.include.keys(
+            "id", "code", "tenThuoc", "hoatChat", "dangBaoChe", "hangSanXuat",
+            "hoiChuan", "kiemSoatDacBiet", "bhytTyLe", "donGia"
+          );
+          pm.expect(row).to.not.have.property("chiDinh");
+          pm.expect(row.tenThuoc.toLowerCase()).to.include("para");
+        });
+        pm.collectionVariables.set("thuocId", String(body.result[0].id));
+      });

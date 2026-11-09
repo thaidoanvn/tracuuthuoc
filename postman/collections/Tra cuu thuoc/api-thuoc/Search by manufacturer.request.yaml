@@ -1,0 +1,33 @@
+$kind: http-request
+url: "{{baseUrl}}/api/thuoc/search"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyword": "stada",
+      "tenThuoc": false,
+      "batDauVoi": false,
+      "hoatChat": false,
+      "cssx": true
+    }
+order: 7000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("manufacturer filter matches hangSanXuat", function () {
+        const rows = pm.response.json().result;
+        pm.expect(rows.length).to.be.above(0);
+        rows.forEach(function (row) {
+          pm.expect(row.hangSanXuat.toLowerCase()).to.include("stada");
+          pm.expect(row.tenThuoc.toLowerCase()).to.not.include("stada");
+        });
+      });

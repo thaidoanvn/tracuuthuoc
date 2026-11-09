@@ -1,0 +1,24 @@
+$kind: http-request
+url: "{{baseUrl}}/api/thuoc/search"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "tenThuoc": true
+    }
+order: 4000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 400", function () {
+        pm.response.to.have.status(400);
+      });
+
+      pm.test("error has a message", function () {
+        pm.expect(pm.response.json().message).to.be.a("string").and.not.empty;
+      });

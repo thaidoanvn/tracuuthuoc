@@ -1,0 +1,7 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/tracuuthuoc}
+    username: ${DATABASE_USER:tracuuthuoc}
+    password: ${DATABASE_PASSWORD:tracuuthuoc}
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect

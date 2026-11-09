@@ -1,0 +1,54 @@
+$kind: http-example
+name: Matching drugs. The list contains summary fields only.
+request:
+  url: "{{baseUrl}}/api/thuoc/search"
+  method: POST
+  headers:
+    Accept: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "keyword": "para",
+        "tenThuoc": true,
+        "batDauVoi": false,
+        "hoatChat": false,
+        "cssx": false
+      }
+response:
+  statusCode: 200
+  statusText: OK
+  headers:
+    Content-Type: application/json
+  body:
+    type: json
+    content: |-
+      {
+        "result": [
+          {
+            "id": 204,
+            "code": "string",
+            "tenThuoc": "string",
+            "hoatChat": "string",
+            "dangBaoChe": "string",
+            "hangSanXuat": "string",
+            "hoiChuan": "string",
+            "kiemSoatDacBiet": "string",
+            "bhytTyLe": 749,
+            "donGia": 2136.2515026703477
+          },
+          {
+            "id": 9900,
+            "code": "string",
+            "tenThuoc": "string",
+            "hoatChat": "string",
+            "dangBaoChe": "string",
+            "hangSanXuat": "string",
+            "hoiChuan": "string",
+            "kiemSoatDacBiet": "string",
+            "bhytTyLe": 391,
+            "donGia": 1055.694769602269
+          }
+        ]
+      }
+order: 1000

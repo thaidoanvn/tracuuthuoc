@@ -1,0 +1,337 @@
+openapi: 3.0.3
+info:
+  title: Tra cứu thuốc API
+  version: 1.0.0
+  description: |
+    Read-only drug catalog for the thaidoan Tra cứu thuốc app.
+    Prices and BHYT rules come from the hospital catalog and can change.
+servers:
+  - url: http://localhost:8088
+security:
+  - apiKey: []
+paths:
+  /api/thuoc/search:
+    post:
+      operationId: searchThuoc
+      summary: Search the drug catalog
+      description: |
+        Selected filters are combined with OR.
+        batDauVoi matches a name that starts with the keyword.
+        tenThuoc, hoatChat, and cssx match when the keyword appears anywhere in that field.
+        cssx searches the manufacturer (hangSanXuat).
+        A blank or whitespace keyword returns an empty result.
+        When every filter is false, the result is empty.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ThuocSearchRequest'
+            example:
+              keyword: para
+              tenThuoc: true
+              batDauVoi: false
+              hoatChat: false
+              cssx: false
+      responses:
+        '200':
+          description: Matching drugs. The list contains summary fields only.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThuocSearchResponse'
+        '400':
+          description: The body is missing, is not JSON, or omits keyword.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/thuoc/suggest:
+    get:
+      operationId: suggestThuoc
+      summary: Suggest drugs after 3 characters
+      description: |
+        Returns at most 10 summary rows using the same filters as search.
+        A keyword shorter than 3 characters returns an empty result.
+      parameters:
+        - name: keyword
+          in: query
+          required: false
+          schema:
+            type: string
+          example: par
+        - name: tenThuoc
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: batDauVoi
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: hoatChat
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: cssx
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Matching suggestions, or an empty list.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThuocSearchResponse'
+  /api/thuoc/{id}:
+    get:
+      operationId: getThuoc
+      summary: Get one drug
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+          example: 1
+      responses:
+        '200':
+          description: Full drug record.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThuocDetail'
+        '400':
+          description: The id is not an integer.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: No drug has this id.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+  /api/admin/thuoc/import:
+    post:
+      operationId: importThuocExcel
+      summary: Import or update drugs from an Excel file
+      description: |
+        Requires an administrator bearer token, not the mobile API key.
+        The first worksheet must contain the hospital columns, including Mã thuốc and Tên thuốc.
+        A row whose code already exists is updated. Stt is ignored.
+        A drug marked Không dùng, other than Không, is hidden from public search.
+      security:
+        - adminToken: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: How many rows were added, updated, or rejected.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ThuocImportResponse'
+        '400':
+          description: The file is missing, unreadable, or has no drug rows.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: The administrator session is missing or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+    adminToken:
+      type: http
+      scheme: bearer
+  schemas:
+    ThuocSearchRequest:
+      type: object
+      required:
+        - keyword
+      properties:
+        keyword:
+          type: string
+          description: Search text. An empty string is valid and matches nothing.
+        tenThuoc:
+          type: boolean
+          default: false
+          description: Keyword appears anywhere in the drug name.
+        batDauVoi:
+          type: boolean
+          default: false
+          description: Drug name starts with the keyword.
+        hoatChat:
+          type: boolean
+          default: false
+          description: Keyword appears anywhere in the active ingredient.
+        cssx:
+          type: boolean
+          default: false
+          description: Keyword appears anywhere in the manufacturer name.
+    ThuocSearchResponse:
+      type: object
+      required:
+        - result
+      properties:
+        result:
+          type: array
+          items:
+            $ref: '#/components/schemas/ThuocSummary'
+    ThuocSummary:
+      type: object
+      required:
+        - id
+        - code
+        - tenThuoc
+        - hoatChat
+        - dangBaoChe
+        - hangSanXuat
+        - hoiChuan
+        - kiemSoatDacBiet
+        - bhytTyLe
+        - donGia
+      properties:
+        id:
+          type: integer
+          format: int64
+        code:
+          type: string
+          description: Unique catalog code. Two drugs cannot share the same code.
+        tenThuoc:
+          type: string
+        hoatChat:
+          type: string
+        dangBaoChe:
+          type: string
+        hangSanXuat:
+          type: string
+        hoiChuan:
+          type: string
+        kiemSoatDacBiet:
+          type: string
+        bhytTyLe:
+          type: integer
+          description: BHYT payment percentage.
+        donGia:
+          type: number
+          description: Unit price in VND.
+    ThuocDetail:
+      allOf:
+        - $ref: '#/components/schemas/ThuocSummary'
+        - type: object
+          required:
+            - soGiayPhep
+            - hamLuong
+            - quyCach
+            - donViTinh
+            - congTy
+            - nuocSanXuat
+            - chiDinh
+            - chongChiDinh
+            - lieuDung
+            - dieuKienBhyt
+          properties:
+            soGiayPhep:
+              type: string
+            hamLuong:
+              type: string
+            quyCach:
+              type: string
+            donViTinh:
+              type: string
+            congTy:
+              type: string
+            nuocSanXuat:
+              type: string
+            chiDinh:
+              type: string
+            chongChiDinh:
+              type: string
+            lieuDung:
+              type: string
+            dieuKienBhyt:
+              type: string
+            soQuyetDinh:
+              type: string
+            nhom:
+              type: string
+            nhomThuoc:
+              type: string
+            bhyt:
+              type: string
+            bhytThanhToan:
+              type: string
+            nguoiThucHien:
+              type: string
+            ngaySanXuat:
+              type: string
+            hanDung:
+              type: string
+              format: date-time
+              nullable: true
+            ngayHetHan:
+              type: string
+              format: date-time
+              nullable: true
+            khongDung:
+              type: string
+              description: When this is filled with a value other than Không, the drug is hidden from public search.
+    ThuocImportResponse:
+      type: object
+      required:
+        - created
+        - updated
+        - failed
+        - errors
+      properties:
+        created:
+          type: integer
+        updated:
+          type: integer
+        failed:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            required:
+              - row
+              - message
+            properties:
+              row:
+                type: integer
+              message:
+                type: string
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string

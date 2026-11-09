@@ -1,0 +1,33 @@
+$kind: http-request
+url: "{{baseUrl}}/api/thuoc/suggest"
+method: GET
+headers:
+  Accept: application/json
+queryParams:
+  - key: keyword
+    value: par
+  - key: tenThuoc
+    value: "true"
+  - key: batDauVoi
+    value: "false"
+  - key: hoatChat
+    value: "false"
+  - key: cssx
+    value: "false"
+order: 1500
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("three characters return suggestions", function () {
+        const rows = pm.response.json().result;
+        pm.expect(rows).to.be.an("array").that.is.not.empty;
+        pm.expect(rows.length).to.be.at.most(10);
+        rows.forEach(function (row) {
+          pm.expect(row).to.not.have.property("chiDinh");
+        });
+      });

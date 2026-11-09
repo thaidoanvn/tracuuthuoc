@@ -1,0 +1,32 @@
+$kind: http-request
+url: "{{baseUrl}}/api/thuoc/search"
+method: POST
+headers:
+  Content-Type: application/json
+  Accept: application/json
+body:
+  type: json
+  content: |-
+    {
+      "keyword": "para",
+      "tenThuoc": false,
+      "batDauVoi": true,
+      "hoatChat": false,
+      "cssx": false
+    }
+order: 6000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("only names that start with the keyword", function () {
+        const rows = pm.response.json().result;
+        pm.expect(rows.length).to.be.above(0);
+        rows.forEach(function (row) {
+          pm.expect(row.tenThuoc.toLowerCase().startsWith("para")).to.eql(true);
+        });
+      });
