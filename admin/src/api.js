@@ -1,5 +1,6 @@
 const TOKEN_KEY = 'adminToken'
-const API_BASE = import.meta.env.VITE_API_BASE || ''
+const PRODUCTION_API = 'https://tracuuthuoc-production.up.railway.app'
+const API_BASE = import.meta.env.VITE_API_BASE || (import.meta.env.PROD ? PRODUCTION_API : '')
 
 export function apiUrl(path) {
   return `${API_BASE}${path}`
