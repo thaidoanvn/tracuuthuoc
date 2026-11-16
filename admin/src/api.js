@@ -1,4 +1,9 @@
 const TOKEN_KEY = 'adminToken'
+const API_BASE = import.meta.env.VITE_API_BASE || ''
+
+export function apiUrl(path) {
+  return `${API_BASE}${path}`
+}
 
 export function getToken() {
   return sessionStorage.getItem(TOKEN_KEY)
@@ -21,7 +26,7 @@ export async function api(path, options = {}) {
   if (token) {
     headers.Authorization = `Bearer ${token}`
   }
-  const response = await fetch(path, { ...options, headers })
+  const response = await fetch(apiUrl(path), { ...options, headers })
   const text = await response.text()
   const data = text ? JSON.parse(text) : null
   if (!response.ok) {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api, getToken, setToken } from './api'
+import { api, apiUrl, getToken, setToken } from './api'
 
 const EMPTY = {
   code: '',
@@ -328,7 +328,7 @@ export default function App() {
               try {
                 const body = new FormData()
                 body.append('file', file)
-                const response = await fetch('/api/admin/thuoc/import', {
+                const response = await fetch(apiUrl('/api/admin/thuoc/import'), {
                   method: 'POST',
                   headers: { Authorization: `Bearer ${getToken()}` },
                   body,
