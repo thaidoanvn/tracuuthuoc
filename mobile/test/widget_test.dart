@@ -19,5 +19,8 @@ void main() {
     expect(find.text('Hoạt chất'), findsOneWidget);
     expect(find.text('CSSX Dược'), findsOneWidget);
     expect(find.text('Nhập từ khóa và bấm Tìm'), findsOneWidget);
+
+    final chips = tester.widgetList<FilterChip>(find.byType(FilterChip)).toList();
+    expect(chips.map((chip) => chip.selected), [true, true, true, true]);
   });
 }

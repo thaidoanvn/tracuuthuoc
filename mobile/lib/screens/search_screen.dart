@@ -18,9 +18,9 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _keyword = TextEditingController();
   bool _tenThuoc = true;
-  bool _batDauVoi = false;
-  bool _hoatChat = false;
-  bool _cssx = false;
+  bool _batDauVoi = true;
+  bool _hoatChat = true;
+  bool _cssx = true;
   bool _loading = false;
   bool _searched = false;
   bool _applyingSuggestion = false;
@@ -223,9 +223,14 @@ class _SearchScreenState extends State<SearchScreen> {
       onSelected: onChanged,
       showCheckmark: true,
       checkmarkColor: Colors.white,
-      labelStyle: TextStyle(color: value ? Colors.white : Colors.grey),
-      side: BorderSide.none,
-      color: WidgetStateProperty.all(const Color(0xFF66BB6A)),
+      labelStyle: const TextStyle(color: Colors.white),
+      side: BorderSide(color: value ? const Color(0xFF66BB6A) : Colors.white54),
+      color: WidgetStateProperty.resolveWith((states) {
+        if (states.contains(WidgetState.selected)) {
+          return const Color(0xFF66BB6A);
+        }
+        return Colors.transparent;
+      }),
     );
   }
 

@@ -38,9 +38,11 @@ public class ThuocExcelImporter {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     private final ThuocRepository repository;
+    private final ThuocCatalogCache catalogCache;
 
-    public ThuocExcelImporter(ThuocRepository repository) {
+    public ThuocExcelImporter(ThuocRepository repository, ThuocCatalogCache catalogCache) {
         this.repository = repository;
+        this.catalogCache = catalogCache;
     }
 
     @Transactional
@@ -90,6 +92,9 @@ public class ThuocExcelImporter {
             }
             if (created == 0 && updated == 0 && failed == 0) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "File Excel không có dữ liệu");
+            }
+            if (created > 0 || updated > 0) {
+                catalogCache.evictAfterCommit();
             }
             return new ThuocImportResponse(created, updated, failed, errors);
         } catch (IOException exception) {

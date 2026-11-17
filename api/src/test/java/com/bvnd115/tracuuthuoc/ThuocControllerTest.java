@@ -208,6 +208,69 @@ class ThuocControllerTest {
     }
 
     @Test
+    void searchSeesAdminEditsAfterTheCatalogCacheClears() throws Exception {
+        perform(post("/api/thuoc/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"keyword":"para","tenThuoc":true}
+                                """))
+                .andExpect(status().isOk());
+
+        MvcResult login = mockMvc.perform(post("/api/admin/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"admin","password":"admin"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = login.getResponse().getContentAsString().replaceAll(".*\"token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+        MvcResult created = mockMvc.perform(post("/api/admin/thuoc")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"CACHE1","tenThuoc":"Thuốc cache cũ","hoatChat":"Test","bhytTyLe":80,"donGia":1500}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        String id = created.getResponse().getContentAsString().replaceAll(".*\"id\"\\s*:\\s*(\\d+).*", "$1");
+
+        perform(post("/api/thuoc/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"keyword":"cache cũ","tenThuoc":true}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", hasSize(1)))
+                .andExpect(jsonPath("$.result[0].code").value("CACHE1"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/admin/thuoc/" + id)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"code":"CACHE1","tenThuoc":"Thuốc cache mới","hoatChat":"Test","bhytTyLe":80,"donGia":1500}
+                                """))
+                .andExpect(status().isOk());
+
+        perform(post("/api/thuoc/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"keyword":"cache cũ","tenThuoc":true}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", empty()));
+        perform(get("/api/thuoc/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tenThuoc").value("Thuốc cache mới"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/thuoc/" + id)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+        perform(get("/api/thuoc/" + id))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
     void excelImportCreatesUpdatesAndHidesUnusedDrugs() throws Exception {
         MvcResult login = mockMvc.perform(post("/api/admin/login")
                         .contentType(MediaType.APPLICATION_JSON)

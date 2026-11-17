@@ -8,11 +8,10 @@ import com.bvnd115.tracuuthuoc.dto.ThuocSummaryResponse;
 import com.bvnd115.tracuuthuoc.dto.ThuocWriteRequest;
 import com.bvnd115.tracuuthuoc.exception.ApiException;
 import com.bvnd115.tracuuthuoc.repository.ThuocRepository;
-import jakarta.persistence.criteria.Predicate;
-import java.util.ArrayList;
+import com.bvnd115.tracuuthuoc.service.ThuocCatalogCache.CachedThuoc;
+import com.bvnd115.tracuuthuoc.service.ThuocCatalogCache.Catalog;
 import java.util.List;
 import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +23,11 @@ public class ThuocService {
     static final int SUGGEST_LIMIT = 10;
 
     private final ThuocRepository repository;
+    private final ThuocCatalogCache catalogCache;
 
-    public ThuocService(ThuocRepository repository) {
+    public ThuocService(ThuocRepository repository, ThuocCatalogCache catalogCache) {
         this.repository = repository;
+        this.catalogCache = catalogCache;
     }
 
     @Transactional(readOnly = true)
@@ -45,9 +46,12 @@ public class ThuocService {
         if (!tenThuoc && !batDauVoi && !hoatChat && !cssx) {
             return List.of();
         }
-        String pattern = TextNormalizer.escapeLike(TextNormalizer.fold(keyword));
-        return repository.findAll(matching(pattern, tenThuoc, batDauVoi, hoatChat, cssx)).stream()
-                .map(ThuocSummaryResponse::from)
+        String folded = TextNormalizer.fold(keyword);
+        Catalog catalog = catalogCache.snapshot();
+        return catalog.drugs().stream()
+                .filter(drug -> !drug.discontinued())
+                .filter(drug -> matches(drug, folded, tenThuoc, batDauVoi, hoatChat, cssx))
+                .map(CachedThuoc::summary)
                 .toList();
     }
 
@@ -82,7 +86,9 @@ public class ThuocService {
         requireUniqueCode(request.code().trim(), null);
         Thuoc thuoc = new Thuoc();
         apply(thuoc, request);
-        return ThuocDetailResponse.from(repository.save(thuoc));
+        ThuocDetailResponse saved = ThuocDetailResponse.from(repository.save(thuoc));
+        catalogCache.evictAfterCommit();
+        return saved;
     }
 
     @Transactional
@@ -91,7 +97,9 @@ public class ThuocService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc"));
         requireUniqueCode(request.code().trim(), id);
         apply(thuoc, request);
-        return ThuocDetailResponse.from(repository.save(thuoc));
+        ThuocDetailResponse saved = ThuocDetailResponse.from(repository.save(thuoc));
+        catalogCache.evictAfterCommit();
+        return saved;
     }
 
     @Transactional
@@ -100,6 +108,7 @@ public class ThuocService {
             throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc");
         }
         repository.deleteById(id);
+        catalogCache.evictAfterCommit();
     }
 
     private void requireUniqueCode(String code, Long currentId) {
@@ -150,38 +159,30 @@ public class ThuocService {
 
     @Transactional(readOnly = true)
     public ThuocDetailResponse detail(long id) {
-        return repository.findById(id)
-                .map(ThuocDetailResponse::from)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc"));
+        CachedThuoc drug = catalogCache.snapshot().byId().get(id);
+        if (drug == null) {
+            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc");
+        }
+        return drug.detail();
     }
 
-    private Specification<Thuoc> matching(
-            String pattern,
+    private static boolean matches(
+            CachedThuoc drug,
+            String folded,
             boolean tenThuoc,
             boolean batDauVoi,
             boolean hoatChat,
             boolean cssx
     ) {
-        return (root, query, criteria) -> {
-            List<Predicate> selected = new ArrayList<>();
-            if (tenThuoc) {
-                selected.add(criteria.like(root.get("tenThuocNorm"), "%" + pattern + "%", '\\'));
-            }
-            if (batDauVoi) {
-                selected.add(criteria.like(root.get("tenThuocNorm"), pattern + "%", '\\'));
-            }
-            if (hoatChat) {
-                selected.add(criteria.like(root.get("hoatChatNorm"), "%" + pattern + "%", '\\'));
-            }
-            if (cssx) {
-                selected.add(criteria.like(root.get("hangSanXuatNorm"), "%" + pattern + "%", '\\'));
-            }
-            query.orderBy(criteria.asc(root.get("tenThuoc")), criteria.asc(root.get("id")));
-            Predicate inUse = criteria.or(
-                    criteria.isNull(root.get("ngungSuDung")),
-                    criteria.isFalse(root.get("ngungSuDung"))
-            );
-            return criteria.and(criteria.or(selected.toArray(Predicate[]::new)), inUse);
-        };
+        if (tenThuoc && drug.tenThuocNorm().contains(folded)) {
+            return true;
+        }
+        if (batDauVoi && drug.tenThuocNorm().startsWith(folded)) {
+            return true;
+        }
+        if (hoatChat && drug.hoatChatNorm().contains(folded)) {
+            return true;
+        }
+        return cssx && drug.hangSanXuatNorm().contains(folded);
     }
 }
