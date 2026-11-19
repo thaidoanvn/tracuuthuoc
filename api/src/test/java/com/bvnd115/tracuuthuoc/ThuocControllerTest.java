@@ -8,6 +8,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -45,6 +46,12 @@ class ThuocControllerTest {
         mockMvc.perform(get("/api/thuoc/suggest").param("keyword", "par").param("tenThuoc", "true"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.message").value("Khóa xác thực không hợp lệ"));
+    }
+
+    @Test
+    void optionsPreflightWithoutApiKeyIsNotUnauthorized() throws Exception {
+        mockMvc.perform(options("/api/thuoc/suggest"))
+                .andExpect(status().is(not(401)));
     }
 
     @Test
@@ -204,6 +211,21 @@ class ThuocControllerTest {
 
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete("/api/admin/thuoc/" + id)
                         .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void lowercaseBearerPrefixIsAccepted() throws Exception {
+        MvcResult login = mockMvc.perform(post("/api/admin/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"admin","password":"admin"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = login.getResponse().getContentAsString().replaceAll(".*\"token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+        mockMvc.perform(get("/api/admin/thuoc").header("Authorization", "bearer " + token))
                 .andExpect(status().isOk());
     }
 

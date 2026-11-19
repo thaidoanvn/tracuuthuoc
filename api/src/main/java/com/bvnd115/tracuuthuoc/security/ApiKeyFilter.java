@@ -29,7 +29,10 @@ public class ApiKeyFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path == null || !path.startsWith("/api/") || path.startsWith("/api/admin");
+        return path == null
+                || !path.startsWith("/api/")
+                || path.startsWith("/api/admin")
+                || "OPTIONS".equalsIgnoreCase(request.getMethod());
     }
 
     @Override

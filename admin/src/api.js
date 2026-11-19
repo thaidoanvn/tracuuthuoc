@@ -18,6 +18,17 @@ export function setToken(token) {
   }
 }
 
+export function parseBody(text) {
+  if (text == null || String(text).trim() === '') {
+    return null
+  }
+  try {
+    return JSON.parse(text)
+  } catch {
+    return null
+  }
+}
+
 export async function api(path, options = {}) {
   const headers = { ...(options.headers || {}) }
   if (options.body !== undefined) {
@@ -28,10 +39,9 @@ export async function api(path, options = {}) {
     headers.Authorization = `Bearer ${token}`
   }
   const response = await fetch(apiUrl(path), { ...options, headers })
-  const text = await response.text()
-  const data = text ? JSON.parse(text) : null
+  const data = parseBody(await response.text())
   if (!response.ok) {
-    const error = new Error(data?.message || 'Yêu cầu không thành công')
+    const error = new Error(data?.message || `Yêu cầu không thành công (${response.status})`)
     error.status = response.status
     throw error
   }

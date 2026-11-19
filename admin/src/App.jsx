@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api, apiUrl, getToken, setToken } from './api'
+import { api, apiUrl, getToken, parseBody, setToken } from './api'
 
 const EMPTY = {
   code: '',
@@ -333,13 +333,16 @@ export default function App() {
                   headers: { Authorization: `Bearer ${getToken()}` },
                   body,
                 })
-                const data = await response.json()
+                const data = parseBody(await response.text())
                 if (!response.ok) {
                   if (response.status === 401) {
                     setToken(null)
                     setTokenState(null)
                   }
-                  throw new Error(data.message || 'Không nhập được file')
+                  throw new Error(data?.message || `Không nhập được file (${response.status})`)
+                }
+                if (!data) {
+                  throw new Error(`Không nhập được file (${response.status})`)
                 }
                 const problems = (data.errors ?? []).map((item) => `Dòng ${item.row}: ${item.message}`).join('; ')
                 setNotice(`Đã thêm ${data.created}, cập nhật ${data.updated}${data.failed ? `, ${data.failed} dòng lỗi` : ''}${problems ? `. ${problems}` : ''}`)

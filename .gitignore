@@ -1,0 +1,15 @@
+api/target/
+api/data/
+.idea/
+*.iml
+.DS_Store
+mobile/.dart_tool/
+mobile/build/
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/android/.gradle/
+mobile/android/local.properties
+mobile/ios/Pods/
+admin/node_modules/
+admin/dist/
