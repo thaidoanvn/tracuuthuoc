@@ -1,0 +1,24 @@
+$kind: http-request
+description: |
+  The phone reads this before drawing a drug. The name is always shown.
+  A field set to false is hidden.
+url: "{{baseUrl}}/api/thuoc/display"
+method: GET
+headers:
+  Accept: application/json
+order: 9000
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("status is 200", function () {
+        pm.response.to.have.status(200);
+      });
+
+      pm.test("each mobile field has a visibility flag", function () {
+        const fields = pm.response.json().fields;
+        pm.expect(fields).to.be.an("object");
+        pm.expect(fields.code).to.eql(true);
+        pm.expect(fields.hoatChat).to.be.a("boolean");
+        pm.expect(fields.donGia).to.be.a("boolean");
+      });

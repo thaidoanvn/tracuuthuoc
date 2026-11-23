@@ -10,7 +10,7 @@ body:
     {
       "keyword": "   ",
       "tenThuoc": true,
-      "batDauVoi": true,
+      "allFields": true,
       "hoatChat": true,
       "cssx": true
     }

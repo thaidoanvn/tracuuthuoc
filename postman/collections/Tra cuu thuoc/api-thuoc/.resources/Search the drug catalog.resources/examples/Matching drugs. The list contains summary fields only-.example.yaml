@@ -11,7 +11,7 @@ request:
       {
         "keyword": "para",
         "tenThuoc": true,
-        "batDauVoi": false,
+        "allFields": false,
         "hoatChat": false,
         "cssx": false
       }

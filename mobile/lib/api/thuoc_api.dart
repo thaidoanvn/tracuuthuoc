@@ -24,14 +24,14 @@ class ThuocApi {
   Future<List<ThuocSummary>> search({
     required String keyword,
     required bool tenThuoc,
-    required bool batDauVoi,
+    required bool allFields,
     required bool hoatChat,
     required bool cssx,
   }) async {
     final response = await _post('/api/thuoc/search', {
       'keyword': keyword,
       'tenThuoc': tenThuoc,
-      'batDauVoi': batDauVoi,
+      'allFields': allFields,
       'hoatChat': hoatChat,
       'cssx': cssx,
     });
@@ -45,7 +45,7 @@ class ThuocApi {
   Future<List<ThuocSummary>> suggest({
     required String keyword,
     required bool tenThuoc,
-    required bool batDauVoi,
+    required bool allFields,
     required bool hoatChat,
     required bool cssx,
   }) async {
@@ -53,7 +53,7 @@ class ThuocApi {
       queryParameters: {
         'keyword': keyword,
         'tenThuoc': '$tenThuoc',
-        'batDauVoi': '$batDauVoi',
+        'allFields': '$allFields',
         'hoatChat': '$hoatChat',
         'cssx': '$cssx',
       },
@@ -66,6 +66,16 @@ class ThuocApi {
     return result
         .map((item) => ThuocSummary.fromJson(item as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<Map<String, bool>> displayFields() async {
+    final response = await _get('/api/thuoc/display');
+    final body = jsonDecode(response.body) as Map<String, dynamic>;
+    final fields = body['fields'];
+    if (fields is! Map) {
+      return {};
+    }
+    return fields.map((key, value) => MapEntry(key.toString(), value == true));
   }
 
   Future<ThuocDetail> detail(int id) async {

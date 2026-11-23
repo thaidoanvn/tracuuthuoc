@@ -15,7 +15,7 @@ void main() {
 
     expect(find.text('Tra cứu thuốc'), findsOneWidget);
     expect(find.text('Tên thuốc'), findsOneWidget);
-    expect(find.text('Bắt đầu với'), findsOneWidget);
+    expect(find.text('Tất cả trường'), findsOneWidget);
     expect(find.text('Hoạt chất'), findsOneWidget);
     expect(find.text('CSSX Dược'), findsOneWidget);
     expect(find.text('Nhập từ khóa và bấm Tìm'), findsOneWidget);

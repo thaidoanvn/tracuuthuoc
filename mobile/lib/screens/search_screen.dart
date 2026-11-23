@@ -18,7 +18,7 @@ class SearchScreen extends StatefulWidget {
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _keyword = TextEditingController();
   bool _tenThuoc = true;
-  bool _batDauVoi = true;
+  bool _allFields = true;
   bool _hoatChat = true;
   bool _cssx = true;
   bool _loading = false;
@@ -27,6 +27,7 @@ class _SearchScreenState extends State<SearchScreen> {
   String? _error;
   List<ThuocSummary> _results = [];
   List<ThuocSummary> _suggestions = [];
+  Map<String, bool> _display = {};
   Timer? _suggestTimer;
   int _suggestRequest = 0;
 
@@ -34,7 +35,21 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _keyword.addListener(_onKeywordChanged);
+    _loadDisplay();
   }
+
+  Future<void> _loadDisplay() async {
+    try {
+      final fields = await widget.api.displayFields();
+      if (mounted) {
+        setState(() => _display = fields);
+      }
+    } catch (_) {
+      // Keep showing every field when the setting cannot be loaded.
+    }
+  }
+
+  bool _shows(String key) => _display[key] != false;
 
   @override
   void dispose() {
@@ -69,7 +84,7 @@ class _SearchScreenState extends State<SearchScreen> {
       final suggestions = await widget.api.suggest(
         keyword: keyword,
         tenThuoc: _tenThuoc,
-        batDauVoi: _batDauVoi,
+        allFields: _allFields,
         hoatChat: _hoatChat,
         cssx: _cssx,
       );
@@ -107,14 +122,22 @@ class _SearchScreenState extends State<SearchScreen> {
       final results = await widget.api.search(
         keyword: _keyword.text,
         tenThuoc: _tenThuoc,
-        batDauVoi: _batDauVoi,
+        allFields: _allFields,
         hoatChat: _hoatChat,
         cssx: _cssx,
       );
       if (!mounted) {
         return;
       }
+      Map<String, bool> fields = _display;
+      try {
+        fields = await widget.api.displayFields();
+      } catch (_) {}
+      if (!mounted) {
+        return;
+      }
       setState(() {
+        _display = fields;
         _results = results;
         _loading = false;
       });
@@ -182,8 +205,8 @@ class _SearchScreenState extends State<SearchScreen> {
                         setState(() => _tenThuoc = value);
                         _scheduleSuggest();
                       }),
-                      _filter('Bắt đầu với', _batDauVoi, (value) {
-                        setState(() => _batDauVoi = value);
+                      _filter('Tất cả trường', _allFields, (value) {
+                        setState(() => _allFields = value);
                         _scheduleSuggest();
                       }),
                       _filter('Hoạt chất', _hoatChat, (value) {
@@ -248,7 +271,10 @@ class _SearchScreenState extends State<SearchScreen> {
             return ListTile(
               dense: true,
               title: Text(drug.tenThuoc),
-              subtitle: Text('${drug.code} · ${drug.hoatChat}'),
+              subtitle: Text([
+                if (_shows('code') && drug.code.isNotEmpty) drug.code,
+                if (_shows('hoatChat') && drug.hoatChat.isNotEmpty) drug.hoatChat,
+              ].join(' · ')),
               onTap: () => _selectSuggestion(drug),
             );
           },
@@ -314,21 +340,29 @@ class _SearchScreenState extends State<SearchScreen> {
                         ),
                   ),
                   const SizedBox(height: 6),
-                  Text('Mã: ${drug.code}'),
-                  Text('Hoạt chất: ${drug.hoatChat}', maxLines: 2, overflow: TextOverflow.ellipsis),
-                  Text('Dạng bào chế: ${drug.dangBaoChe}', maxLines: 2, overflow: TextOverflow.ellipsis),
-                  Text('Hãng sản xuất: ${drug.hangSanXuat}', maxLines: 2, overflow: TextOverflow.ellipsis),
-                  Text('Hội chẩn: ${displayOrKhong(drug.hoiChuan)}'),
-                  Text('Kiểm soát đặc biệt: ${displayOrKhong(drug.kiemSoatDacBiet)}'),
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: Text(
-                      'Tỷ lệ thanh toán: ${drug.bhytTyLe}%\nĐơn giá: ${formatVnd(drug.donGia)}',
-                      textAlign: TextAlign.right,
-                      style: const TextStyle(fontStyle: FontStyle.italic),
+                  if (_shows('code')) Text('Mã: ${drug.code}'),
+                  if (_shows('hoatChat'))
+                    Text('Hoạt chất: ${drug.hoatChat}', maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (_shows('dangBaoChe'))
+                    Text('Dạng bào chế: ${drug.dangBaoChe}', maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (_shows('hangSanXuat'))
+                    Text('Hãng sản xuất: ${drug.hangSanXuat}', maxLines: 2, overflow: TextOverflow.ellipsis),
+                  if (_shows('hoiChuan')) Text('Hội chẩn: ${displayOrKhong(drug.hoiChuan)}'),
+                  if (_shows('kiemSoatDacBiet'))
+                    Text('Kiểm soát đặc biệt: ${displayOrKhong(drug.kiemSoatDacBiet)}'),
+                  if (_shows('bhytTyLe') || _shows('donGia')) const SizedBox(height: 8),
+                  if (_shows('bhytTyLe') || _shows('donGia'))
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        [
+                          if (_shows('bhytTyLe')) 'Tỷ lệ thanh toán: ${drug.bhytTyLe}%',
+                          if (_shows('donGia')) 'Đơn giá: ${formatVnd(drug.donGia)}',
+                        ].join('\n'),
+                        textAlign: TextAlign.right,
+                        style: const TextStyle(fontStyle: FontStyle.italic),
+                      ),
                     ),
-                  ),
                   const Align(
                     alignment: Alignment.centerRight,
                     child: Text(

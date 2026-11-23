@@ -10,7 +10,7 @@ body:
     {
       "keyword": "stada",
       "tenThuoc": false,
-      "batDauVoi": false,
+      "allFields": false,
       "hoatChat": false,
       "cssx": true
     }

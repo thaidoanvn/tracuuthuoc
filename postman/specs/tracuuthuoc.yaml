@@ -16,7 +16,7 @@ paths:
       summary: Search the drug catalog
       description: |
         Selected filters are combined with OR.
-        batDauVoi matches a name that starts with the keyword.
+        allFields matches when the keyword appears in any drug field.
         tenThuoc, hoatChat, and cssx match when the keyword appears anywhere in that field.
         cssx searches the manufacturer (hangSanXuat).
         A blank or whitespace keyword returns an empty result.
@@ -30,7 +30,7 @@ paths:
             example:
               keyword: para
               tenThuoc: true
-              batDauVoi: false
+              allFields: false
               hoatChat: false
               cssx: false
       responses:
@@ -65,11 +65,12 @@ paths:
           schema:
             type: boolean
             default: false
-        - name: batDauVoi
+        - name: allFields
           in: query
           schema:
             type: boolean
             default: false
+          description: Keyword appears in any drug field.
         - name: hoatChat
           in: query
           schema:
@@ -160,6 +161,77 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+  /api/thuoc/display:
+    get:
+      operationId: getDisplayFields
+      summary: Fields the mobile app may show
+      description: |
+        The drug name is always shown. Every other field is listed here.
+        A missing key means the field is shown. false hides it on the phone.
+      responses:
+        '200':
+          description: Visibility of each mobile field.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayFieldsResponse'
+              example:
+                fields:
+                  code: true
+                  hoatChat: true
+                  donGia: true
+  /api/admin/display:
+    get:
+      operationId: getAdminDisplayFields
+      summary: Read the mobile field switches
+      security:
+        - adminToken: []
+      responses:
+        '200':
+          description: Current visibility of each mobile field.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayFieldsResponse'
+        '401':
+          description: The administrator session is missing or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    put:
+      operationId: updateDisplayFields
+      summary: Choose which fields the mobile app shows
+      security:
+        - adminToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DisplayFieldsResponse'
+            example:
+              fields:
+                hoatChat: false
+      responses:
+        '200':
+          description: Visibility after the change. Omitted keys keep their previous value.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisplayFieldsResponse'
+        '400':
+          description: The body names a field the app does not display.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: The administrator session is missing or expired.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 components:
   securitySchemes:
     apiKey:
@@ -182,10 +254,10 @@ components:
           type: boolean
           default: false
           description: Keyword appears anywhere in the drug name.
-        batDauVoi:
+        allFields:
           type: boolean
           default: false
-          description: Drug name starts with the keyword.
+          description: Keyword appears in any text, number, or date field on the drug.
         hoatChat:
           type: boolean
           default: false
@@ -194,6 +266,16 @@ components:
           type: boolean
           default: false
           description: Keyword appears anywhere in the manufacturer name.
+    DisplayFieldsResponse:
+      type: object
+      required:
+        - fields
+      properties:
+        fields:
+          type: object
+          additionalProperties:
+            type: boolean
+          description: Field key to whether the mobile app shows that field.
     ThuocSearchResponse:
       type: object
       required:

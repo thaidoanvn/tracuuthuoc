@@ -40,17 +40,17 @@ public class ThuocService {
             return List.of();
         }
         boolean tenThuoc = Boolean.TRUE.equals(request.tenThuoc());
-        boolean batDauVoi = Boolean.TRUE.equals(request.batDauVoi());
+        boolean allFields = Boolean.TRUE.equals(request.allFields());
         boolean hoatChat = Boolean.TRUE.equals(request.hoatChat());
         boolean cssx = Boolean.TRUE.equals(request.cssx());
-        if (!tenThuoc && !batDauVoi && !hoatChat && !cssx) {
+        if (!tenThuoc && !allFields && !hoatChat && !cssx) {
             return List.of();
         }
         String folded = TextNormalizer.fold(keyword);
         Catalog catalog = catalogCache.snapshot();
         return catalog.drugs().stream()
                 .filter(drug -> !drug.discontinued())
-                .filter(drug -> matches(drug, folded, tenThuoc, batDauVoi, hoatChat, cssx))
+                .filter(drug -> matches(drug, folded, tenThuoc, allFields, hoatChat, cssx))
                 .map(CachedThuoc::summary)
                 .toList();
     }
@@ -59,14 +59,14 @@ public class ThuocService {
     public List<ThuocSummaryResponse> suggest(
             String keyword,
             Boolean tenThuoc,
-            Boolean batDauVoi,
+            Boolean allFields,
             Boolean hoatChat,
             Boolean cssx
     ) {
         if (keyword == null || keyword.trim().length() < SUGGEST_MIN_LENGTH) {
             return List.of();
         }
-        return search(new ThuocSearchRequest(keyword, tenThuoc, batDauVoi, hoatChat, cssx)).stream()
+        return search(new ThuocSearchRequest(keyword, tenThuoc, allFields, hoatChat, cssx)).stream()
                 .limit(SUGGEST_LIMIT)
                 .toList();
     }
@@ -170,14 +170,14 @@ public class ThuocService {
             CachedThuoc drug,
             String folded,
             boolean tenThuoc,
-            boolean batDauVoi,
+            boolean allFields,
             boolean hoatChat,
             boolean cssx
     ) {
         if (tenThuoc && drug.tenThuocNorm().contains(folded)) {
             return true;
         }
-        if (batDauVoi && drug.tenThuocNorm().startsWith(folded)) {
+        if (allFields && drug.searchableText().contains(folded)) {
             return true;
         }
         if (hoatChat && drug.hoatChatNorm().contains(folded)) {

@@ -1,5 +1,5 @@
 $kind: http-request
-url: "{{baseUrl}}/api/thuoc/suggest"
+url: "{{baseUrl}}/api/thuoc/suggest?keyword=par&tenThuoc=true&allFields=false&hoatChat=false&cssx=false"
 method: GET
 headers:
   Accept: application/json
@@ -8,7 +8,7 @@ queryParams:
     value: par
   - key: tenThuoc
     value: "true"
-  - key: batDauVoi
+  - key: allFields
     value: "false"
   - key: hoatChat
     value: "false"

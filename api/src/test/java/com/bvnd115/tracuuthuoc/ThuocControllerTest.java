@@ -5,7 +5,6 @@ import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.startsWith;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
@@ -59,7 +58,7 @@ class ThuocControllerTest {
         perform(post("/api/thuoc/search")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"keyword":"para","tenThuoc":true,"batDauVoi":false,"hoatChat":false,"cssx":false}
+                                {"keyword":"para","tenThuoc":true,"allFields":false,"hoatChat":false,"cssx":false}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result", hasSize(greaterThan(0))))
@@ -68,15 +67,23 @@ class ThuocControllerTest {
     }
 
     @Test
-    void startsWithExcludesNamesThatOnlyContainTheKeyword() throws Exception {
+    void allFieldsFindsTextOutsideTheNameIngredientAndManufacturer() throws Exception {
         perform(post("/api/thuoc/search")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"keyword":"para","tenThuoc":false,"batDauVoi":true,"hoatChat":false,"cssx":false}
+                                {"keyword":"G6PD","tenThuoc":true,"allFields":false,"hoatChat":true,"cssx":true}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.result[*].tenThuoc", everyItem(startsWith("Para"))))
-                .andExpect(jsonPath("$.result[?(@.code == 'HO-PARA')]", empty()));
+                .andExpect(jsonPath("$.result", empty()));
+
+        perform(post("/api/thuoc/search")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"keyword":"G6PD","tenThuoc":false,"allFields":true,"hoatChat":false,"cssx":false}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.result", hasSize(1)))
+                .andExpect(jsonPath("$.result[0].code").value("EFFE500"));
     }
 
     @Test
@@ -84,7 +91,7 @@ class ThuocControllerTest {
         perform(post("/api/thuoc/search")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"keyword":"para","tenThuoc":false,"batDauVoi":false,"hoatChat":true,"cssx":false}
+                                {"keyword":"para","tenThuoc":false,"allFields":false,"hoatChat":true,"cssx":false}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result[?(@.code == 'EFFE500')]", not(empty())));
@@ -95,7 +102,7 @@ class ThuocControllerTest {
         perform(post("/api/thuoc/search")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
-                                {"keyword":"stada","tenThuoc":false,"batDauVoi":false,"hoatChat":false,"cssx":true}
+                                {"keyword":"stada","tenThuoc":false,"allFields":false,"hoatChat":false,"cssx":true}
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.result", hasSize(2)));
@@ -157,6 +164,62 @@ class ThuocControllerTest {
         perform(get("/api/thuoc/999999"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.message").value("Không tìm thấy thuốc"));
+    }
+
+    @Test
+    void administratorChoosesFieldsShownOnThePhone() throws Exception {
+        perform(get("/api/thuoc/display"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fields.code").value(true))
+                .andExpect(jsonPath("$.fields.hoatChat").value(true));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/admin/display")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fields":{"hoatChat":false}}
+                                """))
+                .andExpect(status().isUnauthorized());
+
+        MvcResult login = mockMvc.perform(post("/api/admin/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"username":"admin","password":"admin"}
+                                """))
+                .andExpect(status().isOk())
+                .andReturn();
+        String token = login.getResponse().getContentAsString().replaceAll(".*\"token\"\\s*:\\s*\"([^\"]+)\".*", "$1");
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/admin/display")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fields":{"notAField":false}}
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Trường không hợp lệ"));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/admin/display")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fields":{"hoatChat":false}}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fields.hoatChat").value(false))
+                .andExpect(jsonPath("$.fields.code").value(true));
+
+        perform(get("/api/thuoc/display"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fields.hoatChat").value(false));
+
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put("/api/admin/display")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"fields":{"hoatChat":true}}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fields.hoatChat").value(true));
     }
 
     @Test

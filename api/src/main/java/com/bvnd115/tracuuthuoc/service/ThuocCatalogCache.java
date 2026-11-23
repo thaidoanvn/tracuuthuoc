@@ -73,6 +73,7 @@ public class ThuocCatalogCache {
             String tenThuocNorm,
             String hoatChatNorm,
             String hangSanXuatNorm,
+            String searchableText,
             boolean discontinued,
             ThuocSummaryResponse summary,
             ThuocDetailResponse detail
@@ -84,10 +85,50 @@ public class ThuocCatalogCache {
                     TextNormalizer.fold(thuoc.getTenThuoc()),
                     TextNormalizer.fold(thuoc.getHoatChat()),
                     TextNormalizer.fold(thuoc.getHangSanXuat()),
+                    searchableText(thuoc),
                     Boolean.TRUE.equals(thuoc.getNgungSuDung()),
                     ThuocSummaryResponse.from(thuoc),
                     ThuocDetailResponse.from(thuoc)
             );
+        }
+
+        private static String searchableText(Thuoc thuoc) {
+            return TextNormalizer.fold(String.join(
+                    "\n",
+                    text(thuoc.getCode()),
+                    text(thuoc.getTenThuoc()),
+                    text(thuoc.getHoatChat()),
+                    text(thuoc.getDangBaoChe()),
+                    text(thuoc.getHangSanXuat()),
+                    text(thuoc.getHoiChuan()),
+                    text(thuoc.getKiemSoatDacBiet()),
+                    text(thuoc.getSoGiayPhep()),
+                    text(thuoc.getHamLuong()),
+                    text(thuoc.getQuyCach()),
+                    text(thuoc.getDonViTinh()),
+                    text(thuoc.getCongTy()),
+                    text(thuoc.getNuocSanXuat()),
+                    text(thuoc.getChiDinh()),
+                    text(thuoc.getChongChiDinh()),
+                    text(thuoc.getLieuDung()),
+                    text(thuoc.getDieuKienBhyt()),
+                    text(thuoc.getSoQuyetDinh()),
+                    text(thuoc.getNhom()),
+                    text(thuoc.getNhomThuoc()),
+                    text(thuoc.getBhyt()),
+                    text(thuoc.getBhytThanhToan()),
+                    text(thuoc.getNguoiThucHien()),
+                    text(thuoc.getNgaySanXuat()),
+                    text(thuoc.getKhongDung()),
+                    thuoc.getBhytTyLe() == null ? "" : thuoc.getBhytTyLe().toString(),
+                    thuoc.getDonGia() == null ? "" : thuoc.getDonGia().toPlainString(),
+                    thuoc.getHanDung() == null ? "" : thuoc.getHanDung().toString(),
+                    thuoc.getNgayHetHan() == null ? "" : thuoc.getNgayHetHan().toString()
+            ));
+        }
+
+        private static String text(String value) {
+            return value == null ? "" : value;
         }
     }
 }

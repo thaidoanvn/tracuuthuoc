@@ -68,6 +68,37 @@ const AREAS = [
   ['dieuKienBhyt', 'Điều kiện thanh toán'],
 ]
 
+const MOBILE_FIELDS = [
+  ['code', 'Mã thuốc'],
+  ['soQuyetDinh', 'Số QĐ'],
+  ['soGiayPhep', 'Giấy phép'],
+  ['hoatChat', 'Hoạt chất'],
+  ['hamLuong', 'Hàm lượng'],
+  ['dangBaoChe', 'Dạng bào chế'],
+  ['quyCach', 'Quy cách đóng gói'],
+  ['donViTinh', 'Đơn vị tính'],
+  ['donGia', 'Đơn giá'],
+  ['congTy', 'Công ty'],
+  ['hangSanXuat', 'Hãng sản xuất'],
+  ['nuocSanXuat', 'Nước sản xuất'],
+  ['hoiChuan', 'Hội chẩn'],
+  ['kiemSoatDacBiet', 'Kiểm soát đặc biệt'],
+  ['nhom', 'Nhóm'],
+  ['nhomThuoc', 'Nhóm thuốc'],
+  ['bhyt', 'BHYT'],
+  ['bhytTyLe', 'Tỷ lệ thanh toán BHYT'],
+  ['bhytThanhToan', 'BHYT thanh toán'],
+  ['dieuKienBhyt', 'Điều kiện thanh toán BHYT'],
+  ['nguoiThucHien', 'Người thực hiện'],
+  ['ngaySanXuat', 'Ngày sản xuất'],
+  ['hanDung', 'Hạn dùng'],
+  ['ngayHetHan', 'Ngày hết hạn'],
+  ['khongDung', 'Không dùng'],
+  ['chiDinh', 'Chỉ định'],
+  ['chongChiDinh', 'Chống chỉ định'],
+  ['lieuDung', 'Liều dùng'],
+]
+
 function toApiDate(value) {
   const text = String(value ?? '').trim()
   if (!text) {
@@ -127,6 +158,58 @@ export default function App() {
   const [busy, setBusy] = useState(false)
   const [page, setPage] = useState(1)
   const [pageDraft, setPageDraft] = useState('1')
+  const [view, setView] = useState('catalog')
+  const [displayFields, setDisplayFields] = useState({})
+  const [displayReady, setDisplayReady] = useState(false)
+
+  async function openDisplay() {
+    setError('')
+    setNotice('')
+    setDisplayReady(false)
+    setView('display')
+    try {
+      const data = await api('/api/admin/display')
+      setDisplayFields(data.fields || {})
+      setDisplayReady(true)
+    } catch (err) {
+      if (err.status === 401) {
+        setToken(null)
+        setTokenState(null)
+      }
+      setError(err.message)
+    }
+  }
+
+  function setEveryField(visible) {
+    const next = {}
+    for (const [name] of MOBILE_FIELDS) {
+      next[name] = visible
+    }
+    setDisplayFields(next)
+  }
+
+  async function saveDisplay(event) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    setNotice('')
+    try {
+      const data = await api('/api/admin/display', {
+        method: 'PUT',
+        body: JSON.stringify({ fields: displayFields }),
+      })
+      setDisplayFields(data.fields || {})
+      setNotice('Đã lưu. Ứng dụng điện thoại dùng thiết lập này ở lần mở tiếp theo.')
+    } catch (err) {
+      if (err.status === 401) {
+        setToken(null)
+        setTokenState(null)
+      }
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
 
   async function load() {
     const data = await api('/api/admin/thuoc')
@@ -298,8 +381,45 @@ export default function App() {
           <p className="eyebrow">thaidoan</p>
           <h1>Danh mục thuốc</h1>
         </div>
-        <button type="button" className="ghost" onClick={signOut}>Đăng xuất</button>
+        <div className="actions">
+          <button
+            type="button"
+            className="ghost"
+            onClick={view === 'display' ? () => { setNotice(''); setError(''); setView('catalog') } : openDisplay}
+          >
+            {view === 'display' ? 'Danh mục' : 'Hiển thị trên ứng dụng'}
+          </button>
+          <button type="button" className="ghost" onClick={signOut}>Đăng xuất</button>
+        </div>
       </header>
+      {view === 'display' ? (
+        <form className="card" onSubmit={saveDisplay}>
+          <h2>Trường hiển thị trên ứng dụng</h2>
+          <p>Tên thuốc luôn hiện. Bỏ chọn trường nào thì điện thoại không hiện trường đó.</p>
+          {error ? <p className="error">{error}</p> : null}
+          {notice ? <p className="notice">{notice}</p> : null}
+          <div className="actions field-actions">
+            <button type="button" className="ghost" disabled={!displayReady} onClick={() => setEveryField(true)}>Chọn tất cả</button>
+            <button type="button" className="ghost" disabled={!displayReady} onClick={() => setEveryField(false)}>Bỏ chọn tất cả</button>
+          </div>
+          <div className="field-list">
+            {MOBILE_FIELDS.map(([name, label]) => (
+              <label key={name} className="check">
+                <input
+                  type="checkbox"
+                  checked={displayFields[name] !== false}
+                  onChange={(event) => setDisplayFields({ ...displayFields, [name]: event.target.checked })}
+                />
+                {label}
+              </label>
+            ))}
+          </div>
+          <div className="actions">
+            <button type="submit" disabled={busy || !displayReady}>{busy ? 'Đang lưu…' : 'Lưu'}</button>
+          </div>
+        </form>
+      ) : null}
+      {view === 'catalog' ? <>
       <section className="toolbar">
         <input
           placeholder="Lọc theo tên, mã, hoạt chất, hãng"
@@ -457,6 +577,7 @@ export default function App() {
           </div>
         </form>
       ) : null}
+      </> : null}
     </main>
   )
 }

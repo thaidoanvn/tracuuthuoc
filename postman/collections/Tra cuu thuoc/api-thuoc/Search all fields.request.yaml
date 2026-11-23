@@ -1,4 +1,7 @@
 $kind: http-request
+description: |
+  allFields matches the keyword in any drug field, including text that is
+  not the name, active ingredient, or manufacturer.
 url: "{{baseUrl}}/api/thuoc/search"
 method: POST
 headers:
@@ -8,9 +11,9 @@ body:
   type: json
   content: |-
     {
-      "keyword": "para",
+      "keyword": "G6PD",
       "tenThuoc": false,
-      "batDauVoi": true,
+      "allFields": true,
       "hoatChat": false,
       "cssx": false
     }
@@ -23,10 +26,8 @@ scripts:
         pm.response.to.have.status(200);
       });
 
-      pm.test("only names that start with the keyword", function () {
+      pm.test("all fields finds the contraindication text", function () {
         const rows = pm.response.json().result;
-        pm.expect(rows.length).to.be.above(0);
-        rows.forEach(function (row) {
-          pm.expect(row.tenThuoc.toLowerCase().startsWith("para")).to.eql(true);
-        });
+        pm.expect(rows).to.be.an("array").that.has.lengthOf(1);
+        pm.expect(rows[0].code).to.eql("EFFE500");
       });

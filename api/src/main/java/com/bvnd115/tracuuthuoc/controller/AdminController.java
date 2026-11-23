@@ -2,12 +2,14 @@ package com.bvnd115.tracuuthuoc.controller;
 
 import com.bvnd115.tracuuthuoc.dto.AdminLoginRequest;
 import com.bvnd115.tracuuthuoc.dto.AdminLoginResponse;
+import com.bvnd115.tracuuthuoc.dto.DisplayFieldsResponse;
 import com.bvnd115.tracuuthuoc.dto.ThuocDetailResponse;
 import com.bvnd115.tracuuthuoc.dto.ThuocImportResponse;
 import com.bvnd115.tracuuthuoc.dto.ThuocSearchResponse;
 import com.bvnd115.tracuuthuoc.dto.ThuocWriteRequest;
 import com.bvnd115.tracuuthuoc.exception.ApiException;
 import com.bvnd115.tracuuthuoc.service.AdminSessionService;
+import com.bvnd115.tracuuthuoc.service.DisplayFieldService;
 import com.bvnd115.tracuuthuoc.service.ThuocExcelImporter;
 import com.bvnd115.tracuuthuoc.service.ThuocService;
 import jakarta.validation.Valid;
@@ -32,11 +34,28 @@ public class AdminController {
     private final AdminSessionService sessions;
     private final ThuocService thuocService;
     private final ThuocExcelImporter excelImporter;
+    private final DisplayFieldService displayFields;
 
-    public AdminController(AdminSessionService sessions, ThuocService thuocService, ThuocExcelImporter excelImporter) {
+    public AdminController(
+            AdminSessionService sessions,
+            ThuocService thuocService,
+            ThuocExcelImporter excelImporter,
+            DisplayFieldService displayFields
+    ) {
         this.sessions = sessions;
         this.thuocService = thuocService;
         this.excelImporter = excelImporter;
+        this.displayFields = displayFields;
+    }
+
+    @GetMapping("/display")
+    public DisplayFieldsResponse display() {
+        return new DisplayFieldsResponse(displayFields.current());
+    }
+
+    @PutMapping("/display")
+    public DisplayFieldsResponse updateDisplay(@RequestBody DisplayFieldsResponse request) {
+        return new DisplayFieldsResponse(displayFields.update(request == null ? null : request.fields()));
     }
 
     @PostMapping("/login")

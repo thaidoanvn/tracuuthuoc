@@ -1,7 +1,7 @@
 $kind: http-request
 description: |
   Selected filters are combined with OR.
-  batDauVoi matches a name that starts with the keyword.
+  allFields matches when the keyword appears in any drug field.
   tenThuoc, hoatChat, and cssx match when the keyword appears anywhere in that field.
   cssx searches the manufacturer (hangSanXuat).
   A blank or whitespace keyword returns an empty result.
@@ -17,7 +17,7 @@ body:
     {
       "keyword": "para",
       "tenThuoc": true,
-      "batDauVoi": false,
+      "allFields": false,
       "hoatChat": false,
       "cssx": false
     }
