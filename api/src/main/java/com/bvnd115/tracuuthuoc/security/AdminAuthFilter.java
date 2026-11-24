@@ -1,5 +1,6 @@
 package com.bvnd115.tracuuthuoc.security;
 
+import com.bvnd115.tracuuthuoc.Messages;
 import com.bvnd115.tracuuthuoc.service.AdminSessionService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -18,9 +19,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class AdminAuthFilter extends OncePerRequestFilter {
 
     private final AdminSessionService sessions;
+    private final Messages messages;
 
-    public AdminAuthFilter(AdminSessionService sessions) {
+    public AdminAuthFilter(AdminSessionService sessions, Messages messages) {
         this.sessions = sessions;
+        this.messages = messages;
     }
 
     @Override
@@ -43,7 +46,7 @@ public class AdminAuthFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().write("{\"message\":\"Phiên đăng nhập không hợp lệ\"}");
+            response.getWriter().write("{\"message\":\"" + messages.get(Messages.SESSION_INVALID) + "\"}");
             return;
         }
         filterChain.doFilter(request, response);

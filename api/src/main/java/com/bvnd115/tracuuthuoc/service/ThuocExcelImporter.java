@@ -1,5 +1,6 @@
 package com.bvnd115.tracuuthuoc.service;
 
+import com.bvnd115.tracuuthuoc.Messages;
 import com.bvnd115.tracuuthuoc.TextNormalizer;
 import com.bvnd115.tracuuthuoc.Thuoc;
 import com.bvnd115.tracuuthuoc.dto.ThuocImportError;
@@ -39,10 +40,12 @@ public class ThuocExcelImporter {
 
     private final ThuocRepository repository;
     private final ThuocCatalogCache catalogCache;
+    private final Messages messages;
 
-    public ThuocExcelImporter(ThuocRepository repository, ThuocCatalogCache catalogCache) {
+    public ThuocExcelImporter(ThuocRepository repository, ThuocCatalogCache catalogCache, Messages messages) {
         this.repository = repository;
         this.catalogCache = catalogCache;
+        this.messages = messages;
     }
 
     @Transactional
@@ -51,21 +54,21 @@ public class ThuocExcelImporter {
         try {
             workbook = WorkbookFactory.create(input);
         } catch (Exception exception) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Không đọc được file Excel");
+            throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.EXCEL_UNREADABLE));
         }
         try (workbook) {
             Sheet sheet = workbook.getNumberOfSheets() == 0 ? null : workbook.getSheetAt(0);
             if (sheet == null) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "File Excel không có dữ liệu");
+                throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.EXCEL_EMPTY));
             }
             DataFormatter formatter = new DataFormatter(Locale.forLanguageTag("vi"));
             int headerRow = findHeader(sheet, formatter);
             if (headerRow < 0) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "File Excel thiếu cột Mã thuốc hoặc Tên thuốc");
+                throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.EXCEL_COLUMNS_MISSING));
             }
             Map<String, Integer> columns = columns(sheet.getRow(headerRow), formatter);
             if (!columns.containsKey("ma thuoc") || !columns.containsKey("ten thuoc")) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "File Excel thiếu cột Mã thuốc hoặc Tên thuốc");
+                throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.EXCEL_COLUMNS_MISSING));
             }
             int created = 0;
             int updated = 0;
@@ -91,14 +94,14 @@ public class ThuocExcelImporter {
                 }
             }
             if (created == 0 && updated == 0 && failed == 0) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "File Excel không có dữ liệu");
+                throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.EXCEL_EMPTY));
             }
             if (created > 0 || updated > 0) {
                 catalogCache.evictAfterCommit();
             }
             return new ThuocImportResponse(created, updated, failed, errors);
         } catch (IOException exception) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Không đọc được file Excel");
+            throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.EXCEL_UNREADABLE));
         }
     }
 
@@ -106,13 +109,13 @@ public class ThuocExcelImporter {
         String code = value(row, columns, "ma thuoc", formatter).trim();
         String tenThuoc = clip(value(row, columns, "ten thuoc", formatter), 500);
         if (code.isEmpty()) {
-            throw new IllegalArgumentException("Thiếu mã thuốc");
+            throw new IllegalArgumentException(messages.get(Messages.EXCEL_CODE_MISSING));
         }
         if (code.length() > 64) {
-            throw new IllegalArgumentException("Mã thuốc dài quá 64 ký tự");
+            throw new IllegalArgumentException(messages.get(Messages.EXCEL_CODE_TOO_LONG));
         }
         if (tenThuoc.isEmpty()) {
-            throw new IllegalArgumentException("Thiếu tên thuốc");
+            throw new IllegalArgumentException(messages.get(Messages.EXCEL_NAME_MISSING));
         }
         Thuoc thuoc = repository.findByCode(code).orElseGet(Thuoc::new);
         boolean created = thuoc.getId() == null;
@@ -142,8 +145,8 @@ public class ThuocExcelImporter {
         thuoc.setBhytThanhToan(clip(value(row, columns, "bhyt thanh toan", formatter), 500));
         thuoc.setNguoiThucHien(clip(value(row, columns, "nguoi thuc hien", formatter), 255));
         thuoc.setNgaySanXuat(clip(value(row, columns, "ngay san xuat", formatter), 64));
-        thuoc.setHanDung(dateTime(value(row, columns, "han dung", formatter), "Hạn dùng"));
-        thuoc.setNgayHetHan(dateTime(value(row, columns, "ngay het han", formatter), "Ngày hết hạn"));
+        thuoc.setHanDung(dateTime(value(row, columns, "han dung", formatter), messages.get(Messages.EXCEL_HAN_DUNG_INVALID)));
+        thuoc.setNgayHetHan(dateTime(value(row, columns, "ngay het han", formatter), messages.get(Messages.EXCEL_NGAY_HET_HAN_INVALID)));
         String khongDung = clip(value(row, columns, "khong dung", formatter), 500);
         thuoc.setKhongDung(khongDung);
         thuoc.setNgungSuDung(discontinued(khongDung));
@@ -159,7 +162,7 @@ public class ThuocExcelImporter {
         return !(folded.equals("khong") || folded.equals("no") || folded.equals("0") || folded.equals("false"));
     }
 
-    private LocalDateTime dateTime(String raw, String label) {
+    private LocalDateTime dateTime(String raw, String invalidMessage) {
         if (raw == null || raw.isBlank()) {
             return null;
         }
@@ -195,7 +198,7 @@ public class ThuocExcelImporter {
                 // Try the next accepted date format.
             }
         }
-        throw new IllegalArgumentException(label + " không hợp lệ");
+        throw new IllegalArgumentException(invalidMessage);
     }
 
     private int findHeader(Sheet sheet, DataFormatter formatter) {
@@ -281,7 +284,7 @@ public class ThuocExcelImporter {
         try {
             return new BigDecimal(normalizeNumber(cleaned));
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Đơn giá không hợp lệ");
+            throw new IllegalArgumentException(messages.get(Messages.EXCEL_PRICE_INVALID));
         }
     }
 
@@ -300,7 +303,7 @@ public class ThuocExcelImporter {
             }
             return number.setScale(0, RoundingMode.HALF_UP).intValue();
         } catch (NumberFormatException exception) {
-            throw new IllegalArgumentException("Tỷ lệ không hợp lệ");
+            throw new IllegalArgumentException(messages.get(Messages.EXCEL_RATE_INVALID));
         }
     }
 

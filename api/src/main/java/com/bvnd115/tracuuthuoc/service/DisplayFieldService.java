@@ -1,6 +1,7 @@
 package com.bvnd115.tracuuthuoc.service;
 
 import com.bvnd115.tracuuthuoc.DisplayField;
+import com.bvnd115.tracuuthuoc.Messages;
 import com.bvnd115.tracuuthuoc.DisplayFields;
 import com.bvnd115.tracuuthuoc.exception.ApiException;
 import com.bvnd115.tracuuthuoc.repository.DisplayFieldRepository;
@@ -14,9 +15,11 @@ import org.springframework.transaction.annotation.Transactional;
 public class DisplayFieldService {
 
     private final DisplayFieldRepository repository;
+    private final Messages messages;
 
-    public DisplayFieldService(DisplayFieldRepository repository) {
+    public DisplayFieldService(DisplayFieldRepository repository, Messages messages) {
         this.repository = repository;
+        this.messages = messages;
     }
 
     @Transactional
@@ -35,11 +38,11 @@ public class DisplayFieldService {
     @Transactional
     public Map<String, Boolean> update(Map<String, Boolean> requested) {
         if (requested == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu danh sách trường");
+            throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.DISPLAY_FIELDS_MISSING));
         }
         for (String key : requested.keySet()) {
             if (!DisplayFields.known(key)) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Trường không hợp lệ");
+                throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.DISPLAY_FIELD_INVALID));
             }
         }
         seed();

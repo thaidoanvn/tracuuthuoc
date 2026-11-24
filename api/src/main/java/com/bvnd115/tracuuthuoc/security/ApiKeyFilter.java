@@ -1,5 +1,6 @@
 package com.bvnd115.tracuuthuoc.security;
 
+import com.bvnd115.tracuuthuoc.Messages;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -21,9 +22,11 @@ public class ApiKeyFilter extends OncePerRequestFilter {
     public static final String HEADER = "X-Api-Key";
 
     private final String apiKey;
+    private final Messages messages;
 
-    public ApiKeyFilter(@Value("${app.api-key}") String apiKey) {
+    public ApiKeyFilter(@Value("${app.api-key}") String apiKey, Messages messages) {
         this.apiKey = apiKey;
+        this.messages = messages;
     }
 
     @Override
@@ -45,7 +48,7 @@ public class ApiKeyFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setCharacterEncoding(StandardCharsets.UTF_8.name());
             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-            response.getWriter().write("{\"message\":\"Khóa xác thực không hợp lệ\"}");
+            response.getWriter().write("{\"message\":\"" + messages.get(Messages.API_KEY_INVALID) + "\"}");
             return;
         }
         filterChain.doFilter(request, response);

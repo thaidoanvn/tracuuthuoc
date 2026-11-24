@@ -1,5 +1,6 @@
 package com.bvnd115.tracuuthuoc.service;
 
+import com.bvnd115.tracuuthuoc.Messages;
 import com.bvnd115.tracuuthuoc.TextNormalizer;
 import com.bvnd115.tracuuthuoc.Thuoc;
 import com.bvnd115.tracuuthuoc.dto.ThuocDetailResponse;
@@ -24,16 +25,18 @@ public class ThuocService {
 
     private final ThuocRepository repository;
     private final ThuocCatalogCache catalogCache;
+    private final Messages messages;
 
-    public ThuocService(ThuocRepository repository, ThuocCatalogCache catalogCache) {
+    public ThuocService(ThuocRepository repository, ThuocCatalogCache catalogCache, Messages messages) {
         this.repository = repository;
         this.catalogCache = catalogCache;
+        this.messages = messages;
     }
 
     @Transactional(readOnly = true)
     public List<ThuocSummaryResponse> search(ThuocSearchRequest request) {
         if (request == null || request.keyword() == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Thiếu từ khóa");
+            throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.KEYWORD_MISSING));
         }
         String keyword = request.keyword().trim();
         if (keyword.isEmpty()) {
@@ -94,7 +97,7 @@ public class ThuocService {
     @Transactional
     public ThuocDetailResponse update(long id, ThuocWriteRequest request) {
         Thuoc thuoc = repository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, messages.get(Messages.DRUG_NOT_FOUND)));
         requireUniqueCode(request.code().trim(), id);
         apply(thuoc, request);
         ThuocDetailResponse saved = ThuocDetailResponse.from(repository.save(thuoc));
@@ -105,7 +108,7 @@ public class ThuocService {
     @Transactional
     public void delete(long id) {
         if (!repository.existsById(id)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc");
+            throw new ApiException(HttpStatus.NOT_FOUND, messages.get(Messages.DRUG_NOT_FOUND));
         }
         repository.deleteById(id);
         catalogCache.evictAfterCommit();
@@ -114,7 +117,7 @@ public class ThuocService {
     private void requireUniqueCode(String code, Long currentId) {
         repository.findByCode(code).ifPresent(existing -> {
             if (currentId == null || !currentId.equals(existing.getId())) {
-                throw new ApiException(HttpStatus.CONFLICT, "Mã thuốc đã tồn tại");
+                throw new ApiException(HttpStatus.CONFLICT, messages.get(Messages.DRUG_CODE_EXISTS));
             }
         });
     }
@@ -161,7 +164,7 @@ public class ThuocService {
     public ThuocDetailResponse detail(long id) {
         CachedThuoc drug = catalogCache.snapshot().byId().get(id);
         if (drug == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy thuốc");
+            throw new ApiException(HttpStatus.NOT_FOUND, messages.get(Messages.DRUG_NOT_FOUND));
         }
         return drug.detail();
     }

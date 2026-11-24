@@ -1,5 +1,6 @@
 package com.bvnd115.tracuuthuoc.service;
 
+import com.bvnd115.tracuuthuoc.Messages;
 import com.bvnd115.tracuuthuoc.exception.ApiException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -25,20 +26,23 @@ public class AdminSessionService {
     private final String username;
     private final String password;
     private final byte[] secret;
+    private final Messages messages;
 
     public AdminSessionService(
             @Value("${app.admin-username}") String username,
             @Value("${app.admin-password}") String password,
-            @Value("${app.admin-token-secret}") String secret
+            @Value("${app.admin-token-secret}") String secret,
+            Messages messages
     ) {
         this.username = username;
         this.password = password;
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
+        this.messages = messages;
     }
 
     public String login(String username, String password) {
         if (!same(this.username, username) || !same(this.password, password)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Sai tên đăng nhập hoặc mật khẩu");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, messages.get(Messages.LOGIN_INVALID));
         }
         long expiry = Instant.now().plus(Duration.ofHours(8)).getEpochSecond();
         String nonce = UUID.randomUUID().toString();

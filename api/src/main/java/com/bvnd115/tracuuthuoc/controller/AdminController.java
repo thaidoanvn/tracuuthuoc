@@ -1,5 +1,6 @@
 package com.bvnd115.tracuuthuoc.controller;
 
+import com.bvnd115.tracuuthuoc.Messages;
 import com.bvnd115.tracuuthuoc.dto.AdminLoginRequest;
 import com.bvnd115.tracuuthuoc.dto.AdminLoginResponse;
 import com.bvnd115.tracuuthuoc.dto.DisplayFieldsResponse;
@@ -35,17 +36,20 @@ public class AdminController {
     private final ThuocService thuocService;
     private final ThuocExcelImporter excelImporter;
     private final DisplayFieldService displayFields;
+    private final Messages messages;
 
     public AdminController(
             AdminSessionService sessions,
             ThuocService thuocService,
             ThuocExcelImporter excelImporter,
-            DisplayFieldService displayFields
+            DisplayFieldService displayFields,
+            Messages messages
     ) {
         this.sessions = sessions;
         this.thuocService = thuocService;
         this.excelImporter = excelImporter;
         this.displayFields = displayFields;
+        this.messages = messages;
     }
 
     @GetMapping("/display")
@@ -76,7 +80,7 @@ public class AdminController {
     @PostMapping(value = "/thuoc/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ThuocImportResponse importExcel(@RequestParam("file") MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Chưa chọn file");
+            throw new ApiException(HttpStatus.BAD_REQUEST, messages.get(Messages.FILE_MISSING));
         }
         return excelImporter.importExcel(file.getInputStream());
     }
